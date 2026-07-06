@@ -1,4 +1,4 @@
-# Telcom – A deterministic scheduler for ISP edge routers
+# Telcom
 
 This is an open source framework for managing packet queues, latency, and power usage on access network gear. It is designed for BNGs, OLTs, and 5G CU-UP nodes. It runs in the Linux kernel using eBPF and XDP.
 
