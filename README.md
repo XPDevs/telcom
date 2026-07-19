@@ -1,17 +1,17 @@
-# Telcom eBPF Traffic Flow Monitor
+# Telcom - eBPF Traffic Flow Monitor
 
 [![Build](https://github.com/XPDevs/telcom/actions/workflows/build.yml/badge.svg)](https://github.com/XPDevs/telcom/actions/workflows/build.yml)
 
 Telcom classifies network flows by **entropy** (variance of packet lengths) at XDP
 ingress and shapes egress traffic via TC with a PID-controlled queue-depth loop.
 
-- **Deterministic C** — no AI/ML dependency, no Python, no heavyweight
+- **Deterministic C** - no AI/ML dependency, no Python, no heavyweight
   frameworks. Runs entirely in the kernel BPF runtime.
 - **Entropy-based classification** detects GAMING (low variance, small packets),
   STREAMING (high variance, large packets), and BULK (background) traffic.
 - **PID shaper** adjusts per-class queue depths every 5 s using proportional–
   integral–derivative control on a configurable target RTT.
-- **Dual-licensed** — Apache 2.0 (user-space) / GPL v2 (eBPF kernel code).
+- **Dual-licensed** - Apache 2.0 (user-space) / GPL v2 (eBPF kernel code).
 
 ## Quick Install
 
@@ -50,7 +50,7 @@ actual RTT in real time. Subscriber churn from jitter drops to near zero.
 
 **Energy (OPEX).** EE has pledged Net Zero by 2040. Every access-node watt
 counts. Telcom automatically throttles background (BULK) traffic during
-high grid demand — cutting up to 15 % power on access-node line cards
+high grid demand - cutting up to 15 % power on access-node line cards
 without touching user-visible Gaming or Streaming flows.
 
 **Vendor Lock-in (CAPEX).** Nokia/Cisco charge $50k+ per chassis for

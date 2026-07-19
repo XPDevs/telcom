@@ -3,7 +3,7 @@
 The daemon reads `telcom.toml` at startup. If the file does not exist, a
 default is created automatically.
 
-## `[thresholds]` — Entropy Classification
+## `[thresholds]` - Entropy Classification
 
 ```
 gaming_variance_threshold = 10000
@@ -18,7 +18,7 @@ streaming_min_avg         = 500
 | `gaming_max_avg` | int | 300 | Max average packet size (bytes) for GAMING classification |
 | `streaming_variance_threshold` | int | 100000 | Flows with variance above this AND avg >= `streaming_min_avg` → STREAMING |
 | `streaming_min_avg` | int | 500 | Min average packet size (bytes) for STREAMING classification |
-| (else) | — | — | Flows matching neither → BULK |
+| (else) | - | - | Flows matching neither → BULK |
 
 ### Example: FTTH / Fiber (low latency, jitter < 2ms)
 
@@ -40,7 +40,7 @@ streaming_variance_threshold = 200000
 streaming_min_avg = 400
 ```
 
-## `[pid]` — Queue Depth Controller
+## `[pid]` - Queue Depth Controller
 
 ```
 target_rtt_ms = 20

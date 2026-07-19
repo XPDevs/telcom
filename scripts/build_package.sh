@@ -39,15 +39,36 @@ cat > "$DEB_DIR/DEBIAN/control" << EOF
 Package: telcom
 Version: ${VERSION}
 Architecture: ${ARCH}
-Maintainer: XPDevs <xpdevs@github.com>
+Maintainer: XPDevs <xpdevs.github.io.com@gmail.com>
 Section: net
 Priority: optional
 Depends: libbpf0 (>= 1.3.0), libelf1 (>= 0.176), libc6 (>= 2.31)
 Recommends: bpftool
-Description: Telcom — eBPF-based traffic flow monitor with entropy classification
- Telcom uses XDP ingress classification with variance-based entropy
- detection (GAMING/STREAMING/BULK) and optional TC egress shaping
- with a PID-controlled queue depth loop.
+Description: Telcom - eBPF traffic scheduling framework (Developer Preview)
+ Telcom is a proof-of-concept framework for deterministic traffic
+ scheduling using eBPF/XDP and TC.
+ .
+ This package provides the telcomd daemon and telcom-peek inspection
+ tool.
+ .
+ Disclaimer:
+ This is a developer preview release. It has been tested on veth pairs
+ and Generic XDP (Wi-Fi) for logic validation. It has not been
+ validated on production ISP hardware (Intel E810 / Mellanox
+ ConnectX-6) at scale.
+ .
+ Known limitations:
+  - RTT measurements are currently simulated (dummy values) in the PID
+    loop.
+  - Requires Linux Kernel 5.10+ and libbpf development headers to
+    compile.
+  - Use in lab environments only.
+ .
+ Core Features (Validated):
+  - Entropy-based flow classification (No DPI / GDPR friendly).
+  - TC egress queue depth management (BULK/STREAM/GAMING).
+  - Live flow inspection via telcom-peek.
+  - PID control loop logic (simulated feedback).
 Homepage: https://github.com/XPDevs/telcom
 EOF
 
