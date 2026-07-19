@@ -48,6 +48,7 @@ static char config_path[PATH_MAX];
 static int verbose = 0;
 static int dry_run = 0;
 static int force_clean = 0;
+static int force_skb = 0;
 
 static struct telcom_config config = {
     .gaming_variance_threshold    = DEFAULT_GAMING_VARIANCE_THRESHOLD,
@@ -104,6 +105,52 @@ static int is_wireless_interface(const char *ifname)
     char path[64];
     snprintf(path, sizeof(path), "/sys/class/net/%s/wireless", ifname);
     return access(path, F_OK) == 0;
+}
+
+static const char *supported_drivers[] = {
+    "i40e", "ice", "mlx5_core", "nfp", NULL
+};
+
+static int check_driver(const char *ifname)
+{
+    char cmd[128];
+    snprintf(cmd, sizeof(cmd), "ethtool -i %s 2>/dev/null", ifname);
+
+    FILE *fp = popen(cmd, "r");
+    if (!fp)
+        return -1;
+
+    char driver[64] = {};
+    while (fgets(driver, sizeof(driver), fp)) {
+        if (strncmp(driver, "driver:", 7) == 0) {
+            break;
+        }
+    }
+    pclose(fp);
+
+    if (driver[0] == '\0')
+        return -1;
+
+    char *val = driver + 7;
+    while (*val == ' ' || *val == '\t') val++;
+    char *nl = strchr(val, '\n');
+    if (nl) *nl = '\0';
+
+    for (int i = 0; supported_drivers[i]; i++) {
+        if (strcmp(val, supported_drivers[i]) == 0) {
+            if (verbose)
+                printf("Driver: %s (supported)\n", val);
+            return 0;
+        }
+    }
+
+    fprintf(stderr,
+        "\033[33mWarning: NIC driver '%s' is not in the tested list "
+        "(i40e, ice, mlx5_core, nfp).\n"
+        "  Native XDP may not achieve line rate. "
+        "Falling back to generic (SKB) mode.\033[0m\n", val);
+    force_skb = 1;
+    return 1;
 }
 
 static int resolve_bpf_obj_path(const char *argv0)
@@ -209,12 +256,24 @@ static int load_config(const char *path)
     return 0;
 }
 
-static int attach_xdp(struct bpf_program *prog, int ifindex, const char *ifname)
+static int attach_xdp(struct bpf_program *prog, int ifindex, const char *ifname, int force_skb)
 {
     int prog_fd = bpf_program__fd(prog);
-    __u32 flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE;
+    __u32 flags;
     int err;
 
+    if (force_skb) {
+        flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_SKB_MODE;
+        err = bpf_xdp_attach(ifindex, prog_fd, flags, NULL);
+        if (err == 0) {
+            printf("XDP attached to %s (generic/SKB mode)\n", ifname);
+            return 0;
+        }
+        fprintf(stderr, "Error attaching XDP (SKB) to %s: %s\n", ifname, strerror(-err));
+        return err;
+    }
+
+    flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE;
     err = bpf_xdp_attach(ifindex, prog_fd, flags, NULL);
     if (err == 0) {
         printf("XDP attached to %s (native/driver mode)\n", ifname);
@@ -235,9 +294,61 @@ static int attach_xdp(struct bpf_program *prog, int ifindex, const char *ifname)
     return err;
 }
 
+static __u32 measure_rtt_ms(void)
+{
+    static __u32 last_rtt = 50;
+    FILE *fp = popen("ss -ti 2>/dev/null", "r");
+    if (!fp)
+        return last_rtt;
+
+    char buf[4096];
+    size_t pos = 0;
+    while (pos < sizeof(buf) - 1) {
+        size_t n = fread(buf + pos, 1, sizeof(buf) - 1 - pos, fp);
+        if (n == 0) break;
+        pos += n;
+    }
+    buf[pos] = '\0';
+    int ret = pclose(fp);
+    (void)ret;
+
+    __u64 sum_us = 0;
+    int count = 0;
+    char *p = buf;
+
+    while ((p = strstr(p, "rtt:")) != NULL) {
+        if (p > buf && *(p - 1) != ' ' && *(p - 1) != '\t') {
+            p += 4;
+            continue;
+        }
+        p += 4;
+        char *end = NULL;
+        double val = strtod(p, &end);
+        if (end == p)
+            continue;
+        __u32 us = val > 0 ? (__u32)(val * 1000.0 + 0.5) : 1;
+        sum_us += us;
+        count++;
+        p = end;
+    }
+
+    if (count > 0) {
+        __u32 avg_us = (__u32)((sum_us + count / 2) / count);
+        __u32 avg_ms = (avg_us + 500) / 1000;
+        if (avg_ms < 1)
+            avg_ms = 1;
+        if (avg_ms > 5000)
+            avg_ms = 5000;
+        last_rtt = avg_ms;
+        return avg_ms;
+    }
+
+    return last_rtt;
+}
+
 static void run_pid_loop(struct bpf_object *tc_obj)
 {
-    __u32 current_rtt = 50;
+    __u32 current_rtt = measure_rtt_ms();
     long long error = (long long)pid_cfg.target_rtt_ms - (long long)current_rtt;
     long long dt = 5;
 
@@ -415,6 +526,10 @@ int main(int argc, char **argv)
 
     cleanup_pins();
 
+    int drv_ret = check_driver(ifname);
+    if (drv_ret < 0 && verbose)
+        fprintf(stderr, "Warning: could not determine NIC driver (ethtool missing?)\n");
+
     struct bpf_object *obj = bpf_object__open_file(bpf_obj_path, NULL);
     if (libbpf_get_error(obj)) {
         fprintf(stderr, "Error opening BPF object: %s\n",
@@ -448,7 +563,7 @@ int main(int argc, char **argv)
                config.streaming_variance_threshold, config.streaming_min_avg);
     }
 
-    if (attach_xdp(prog, ifindex, ifname)) {
+    if (attach_xdp(prog, ifindex, ifname, force_skb)) {
         xdp_attached = 0;
         goto cleanup;
     }

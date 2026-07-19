@@ -6,6 +6,26 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+MISSING=""
+
+if ! command -v clang >/dev/null 2>&1; then
+    MISSING="$MISSING clang"
+fi
+
+if ! dpkg -l libbpf-dev 2>/dev/null | grep -q '^ii'; then
+    if [ ! -f /usr/include/bpf/libbpf.h ] && [ ! -f /usr/local/include/bpf/libbpf.h ]; then
+        MISSING="$MISSING libbpf-dev"
+    fi
+fi
+
+if [ -n "$MISSING" ]; then
+    echo "Error: missing build dependencies:$MISSING" >&2
+    echo "" >&2
+    echo "Install them with:" >&2
+    echo "  sudo apt-get install clang llvm libbpf-dev libelf-dev gcc make" >&2
+    exit 1
+fi
+
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 install -d /usr/local/bin

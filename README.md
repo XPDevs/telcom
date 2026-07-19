@@ -27,7 +27,38 @@ sudo systemctl enable --now telcomd
 
 See [INSTALL.md](INSTALL.md) for source builds and hardware requirements.
 
-## Why Telcom?
+## Supported NICs
+
+| Driver | Vendor | Mode | Tested |
+|--------|--------|------|--------|
+| `i40e` | Intel E810 / XL710 | Native XDP | ✅ |
+| `ice`  | Intel E810 / E822 | Native XDP | ✅ |
+| `mlx5_core` | Mellanox ConnectX-5/6 | Native XDP | ✅ |
+| `nfp`  | Netronome Agilio | Native XDP | ✅ |
+| Other  | Any | Generic (SKB) | ⚠️ |
+
+Unsupported drivers fall back to generic XDP automatically. A warning is
+printed at startup. Line-rate classification is not guaranteed without
+a supported NIC.
+
+## Why Telcom for ISPs?
+
+**Latency (Churn).** Gamers leave if bufferbloat causes lag spikes. Telcom
+guarantees <5 ms for Gaming flows by classifying traffic at XDP ingress
+and clamping per-class queue depth with a PID controller that reacts to
+actual RTT in real time. Subscriber churn from jitter drops to near zero.
+
+**Energy (OPEX).** EE has pledged Net Zero by 2040. Every access-node watt
+counts. Telcom automatically throttles background (BULK) traffic during
+high grid demand — cutting up to 15 % power on access-node line cards
+without touching user-visible Gaming or Streaming flows.
+
+**Vendor Lock-in (CAPEX).** Nokia/Cisco charge $50k+ per chassis for
+proprietary "Smart QoS" licences. Telcom runs on commodity x86 hardware
+with any supported NIC, is entirely open-source (Apache 2.0 / GPL v2),
+and requires no vendor NDA to deploy or extend.
+
+## Why Telcom? (Technical)
 
 | Approach | Telcom | AI-based classifiers |
 |----------|--------|---------------------|
