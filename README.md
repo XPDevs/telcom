@@ -1,4 +1,4 @@
-# Telcom — eBPF Traffic Flow Monitor
+# Telcom eBPF Traffic Flow Monitor
 
 [![Build](https://github.com/XPDevs/telcom/actions/workflows/build.yml/badge.svg)](https://github.com/XPDevs/telcom/actions/workflows/build.yml)
 
