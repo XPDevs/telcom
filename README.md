@@ -17,8 +17,8 @@ ingress and shapes egress traffic via TC with a PID-controlled queue-depth loop.
 
 ```bash
 # Download the .deb from the latest release
-wget https://github.com/XPDevs/telcom/releases/latest/download/telcom_v1.0.0_amd64.deb
-sudo dpkg -i telcom_v1.0.0_amd64.deb
+wget https://github.com/XPDevs/telcom/releases/latest/download/telcom_v0.9.0_amd64.deb
+sudo dpkg -i telcom_v0.9.0_amd64.deb
 sudo apt-get install -f   # pull in libbpf0 if missing
 # Configure your interface
 echo 'TELCOM_IFACE=eth0' | sudo tee /etc/default/telcomd

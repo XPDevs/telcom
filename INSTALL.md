@@ -20,8 +20,8 @@
 ## Option 1: Install from .deb
 
 ```bash
-wget https://github.com/XPDevs/telcom/releases/latest/download/telcom_v1.0.0_amd64.deb
-sudo dpkg -i telcom_v1.0.0_amd64.deb
+wget https://github.com/XPDevs/telcom/releases/latest/download/telcom_v0.9.0_amd64.deb
+sudo dpkg -i telcom_v0.9.0_amd64.deb
 sudo apt-get install -f    # resolves libbpf0 dependency
 ```
 
