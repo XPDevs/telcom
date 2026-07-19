@@ -6,41 +6,24 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-if [ -z "$1" ]; then
-    echo "Usage: $0 <interface>" >&2
-    echo "Example: $0 eth0" >&2
-    exit 1
-fi
-
-INTERFACE="$1"
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 install -d /usr/local/bin
 install -d /usr/local/lib/bpf
-install -m 755 bin/telcomd /usr/local/bin/
-install -m 755 bin/telcom-peek /usr/local/bin/
-install -m 644 bpf/telcom_kern.bpf.o /usr/local/lib/bpf/
+install -d /etc/telcom
 
-if [ ! -f /etc/telcom.toml ]; then
-    install -m 644 telcom.toml /etc/telcom.toml
+install -m 755 "$REPO_DIR/bin/telcomd" /usr/local/bin/
+install -m 755 "$REPO_DIR/bin/telcom-peek" /usr/local/bin/
+install -m 644 "$REPO_DIR/bpf/telcom_kern.bpf.o" /usr/local/lib/bpf/
+install -m 644 "$REPO_DIR/bpf/telcom_tc.bpf.o" /usr/local/lib/bpf/
+
+if [ ! -f /etc/telcom/telcom.toml ]; then
+    install -m 644 "$REPO_DIR/telcom.toml" /etc/telcom/telcom.toml
 fi
 
-cat > /etc/systemd/system/telcomd.service << EOF
-[Unit]
-Description=Telcom eBPF traffic flow monitor
-Documentation=https://github.com/user/telcom
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/telcomd -i ${INTERFACE} -c /etc/telcom.toml
-Restart=on-failure
-RestartSec=5
-AmbientCapabilities=CAP_BPF CAP_NET_ADMIN CAP_SYS_ADMIN
-
-[Install]
-WantedBy=multi-user.target
-EOF
+install -m 644 "$REPO_DIR/scripts/telcomd.service" /etc/systemd/system/telcomd.service
 
 systemctl daemon-reload
-echo "Installed. Enable with: systemctl enable telcomd"
-echo "Then start with: systemctl start telcomd"
+echo "Installation complete."
+echo "To configure: edit /etc/default/telcomd (export TELCOM_IFACE=xdp_iface; export TC_IFACE=tc_iface)"
+echo "Then: systemctl enable --now telcomd"

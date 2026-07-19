@@ -1,15 +1,17 @@
 [Unit]
 Description=Telcom eBPF traffic flow monitor
-Documentation=https://github.com/user/telcom
+Documentation=https://github.com/XPDevs/telcom
 After=network.target
 
 [Service]
 Type=simple
 EnvironmentFile=-/etc/default/telcomd
-ExecStart=/usr/local/bin/telcomd -i ${TELCOM_IFACE} -c /etc/telcom.toml
+ExecStartPre=/usr/local/bin/telcomd --clean
+ExecStart=/usr/local/bin/telcomd -i ${TELCOM_IFACE} ${TC_IFACE:+-e ${TC_IFACE}} -c /etc/telcom/telcom.toml
 Restart=on-failure
 RestartSec=5
 AmbientCapabilities=CAP_BPF CAP_NET_ADMIN CAP_SYS_ADMIN
+ReadWritePaths=/sys/fs/bpf
 
 [Install]
 WantedBy=multi-user.target

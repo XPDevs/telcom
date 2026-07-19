@@ -6,15 +6,20 @@ INCLUDES := -I include
 LIBS := -l:libbpf.so.1 -lelf -lz
 
 VMLINUX_H := include/vmlinux.h
+VERSION_H := include/version.h
+VERSION_FILE := VERSION
 KERNEL_HEADERS := /usr/include/linux/bpf.h
 
 BPF_OBJ := bpf/telcom_kern.bpf.o
+TC_OBJ := bpf/telcom_tc.bpf.o
 DAEMON_BIN := bin/telcomd
 PEEK_BIN := bin/telcom-peek
 
-.PHONY: all check clean vmlinux build_bpf build_daemon build_tools
+.PHONY: all check clean vmlinux version \
+        build_bpf build_tc build_daemon build_tools \
+        install package
 
-all: check build_bpf build_daemon build_tools
+all: check build_bpf build_tc build_daemon build_tools
 
 check:
 	@echo "=== Environment Checks ==="
@@ -64,6 +69,13 @@ check:
 		echo "All checks PASSED."; \
 	fi
 
+version: $(VERSION_H)
+
+$(VERSION_H): $(VERSION_FILE)
+	@echo "Generating $@ from $<"
+	@printf '#ifndef __TELCOM_VERSION_H\n#define __TELCOM_VERSION_H\n\n#define TELCOM_VERSION "%s"\n\n#endif\n' \
+	  "$$(cat $(VERSION_FILE) | tr -d ' \n')" > $@
+
 vmlinux: $(VMLINUX_H)
 
 $(VMLINUX_H):
@@ -81,20 +93,34 @@ $(BPF_OBJ): bpf/telcom_kern.c $(VMLINUX_H)
 build_bpf: $(BPF_OBJ)
 	@echo "BPF object compiled: $<"
 
+$(TC_OBJ): bpf/telcom_tc.c $(VMLINUX_H)
+	$(CLANG) $(BPF_CFLAGS) $(INCLUDES) -c -o $@ $<
+
+build_tc: $(TC_OBJ)
+	@echo "TC object compiled: $<"
+
 bin:
 	mkdir -p bin
 
-$(DAEMON_BIN): src/telcomd.c include/telcom_kern_shared.h | bin
+$(DAEMON_BIN): src/telcomd.c include/telcom_kern_shared.h $(VERSION_H) | bin
 	$(CLANG) $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS)
 
-build_daemon: $(DAEMON_BIN)
+build_daemon: $(DAEMON_BIN) $(TC_OBJ)
 	@echo "Daemon compiled: $<"
 
-$(PEEK_BIN): tools/telcom_peek.c include/telcom_kern_shared.h | bin
+$(PEEK_BIN): tools/telcom_peek.c include/telcom_kern_shared.h $(VERSION_H) | bin
 	$(CLANG) $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS)
 
 build_tools: $(PEEK_BIN)
 	@echo "Peek tool compiled: $<"
 
+install: all
+	@echo "Running install script..."
+	@scripts/install.sh
+
+package: all
+	@echo "Building .deb package..."
+	@scripts/build_package.sh
+
 clean:
-	rm -rf bpf/*.o bin
+	rm -rf bpf/*.o bin telcom_*.deb

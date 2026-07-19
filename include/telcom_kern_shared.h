@@ -44,4 +44,19 @@ struct telcom_config {
     __u32 streaming_min_avg;
 };
 
+#define NUM_CLASSES 3
+
+struct class_queue {
+    __u32 max_depth;
+    __u32 current_depth;
+    __u64 last_tx_ns;
+};
+
+struct pid_config {
+    __u32 target_rtt_ms;
+    __u32 kp;
+    __u32 ki;
+    __u32 kd;
+};
+
 #endif

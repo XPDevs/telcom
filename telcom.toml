@@ -3,3 +3,9 @@ gaming_variance_threshold = 10000
 gaming_max_avg = 300
 streaming_variance_threshold = 100000
 streaming_min_avg = 500
+
+[pid]
+target_rtt_ms = 20
+kp = 1000
+ki = 100
+kd = 500
