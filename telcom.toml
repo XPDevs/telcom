@@ -1,0 +1,5 @@
+[thresholds]
+gaming_variance_threshold = 10000
+gaming_max_avg = 300
+streaming_variance_threshold = 100000
+streaming_min_avg = 500
