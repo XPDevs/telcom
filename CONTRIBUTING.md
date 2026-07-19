@@ -13,7 +13,7 @@
 ### eBPF programs (`bpf/`)
 
 - Follow Linux kernel style for BPF C code (`checkpatch.pl`-compatible).
-- All BPF helpers must pass the verifier - avoid loops, unbounded memory
+- All BPF helpers must pass the verifier, avoid loops, unbounded memory
   access, and variable-length stack.
 - Use `__u8`, `__u16`, `__u32`, `__u64` from `vmlinux.h`.
 

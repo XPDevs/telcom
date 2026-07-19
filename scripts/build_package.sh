@@ -44,7 +44,7 @@ Section: net
 Priority: optional
 Depends: libbpf0 (>= 1.3.0), libelf1 (>= 0.176), libc6 (>= 2.31)
 Recommends: bpftool
-Description: Telcom - eBPF traffic scheduling framework (Developer Preview)
+Description: Telcom eBPF traffic scheduling framework (Developer Preview)
  Telcom is a proof-of-concept framework for deterministic traffic
  scheduling using eBPF/XDP and TC.
  .
